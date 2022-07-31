@@ -3,7 +3,6 @@
 # $Header$
 
 import datetime
-import os
 import re
 import shutil
 import sys
@@ -26,9 +25,9 @@ parser.add_argument('--debug', action="store_true",
                     help='Turn on debugging')
 parser.add_argument('--dryrun', action="store_true",
                     help='Dry-run mode')
-parser.add_argument('--norecurse', action="store_false",
+parser.add_argument('--norecurse', action="store_false", default=False,
                     help='Will not recurse into path arguments that are directories')
-parser.add_argument('--nounlink', action="store_false",
+parser.add_argument('--nounlink', action="store_false", default=False,
                     help='Will not remove superfluous files')
 
 parser.add_argument('file', nargs='*', help='file names')
@@ -54,6 +53,7 @@ def parse_ext(file_name):
     if not ext:
         ext = ''
     return base, ext
+
 
 Time_stamp = datetime.datetime.now()
 
@@ -140,3 +140,4 @@ for apath in args.file:
     pp(Path(apath), process_file)
 
 print("Backed up %i file(s)" % Copied)
+

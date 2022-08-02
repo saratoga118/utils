@@ -9,9 +9,9 @@ import sys
 from pathlib import Path
 import filecmp
 import argparse
+import logging
 
 Copied = 0
-
 
 parser = argparse.ArgumentParser(
     prog='make_file_backup_tstamp',
@@ -41,12 +41,6 @@ Recurse = not args.norecurse
 Unlink = not args.nounlink
 
 
-def debp(*msg):
-    if Debug:
-        for elt in msg:
-            print("[DEBUG]: " + elt, file=sys.stderr)
-
-
 def parse_ext(file_name):
     m = re.search(r'(.*?)(\.[^.]+)?$', file_name)
     base, ext = m.groups()
@@ -69,7 +63,7 @@ def process_file(source_file_name):
     global Copied
     for pe in source_file_name.parts:
         if pe == Backup_dir_name:
-            debp("Ignoring %s - in backup path" % source_file_name)
+            logging.debug("Ignoring %s - in backup path" % source_file_name)
             return
     if not source_file_name.is_file():
         return
@@ -87,20 +81,25 @@ def process_file(source_file_name):
         # print("bf:",bf)
         n = backup_file_re.search(str(bf))
         if n:
-            debp("Source file '%s' - checking backup file '%s'" % (source_file_name, bf))
+            logging.debug("Source file '%s' - checking backup file '%s'" % (source_file_name, bf))
             backup_files.add(bf)
 
     # Is there already a backup file, i.e. a file with the same timestamp?
     source_size = source_file_name.stat().st_size
     existing_backup = ''
+    # for bf in backup_files:
+    #     if not existing_backup:
+    #         if bf.stat().st_size == source_size:
+    #             if filecmp.cmp(bf, source_file_name):
+    #                 existing_backup = bf
     for bf in backup_files:
-        if not existing_backup:
-            if bf.stat().st_size == source_size:
-                if filecmp.cmp(bf, source_file_name):
-                    existing_backup = bf
+        if not existing_backup and \
+        bf.stat().st_size == source_size and \
+        filecmp.cmp(bf, source_file_name):
+            existing_backup = bf
 
     if existing_backup:
-        debp("Backup file '%s' is a backup of '%s'" %
+        logging.debug("Backup file '%s' is a backup of '%s'" %
              (existing_backup, source_file_name))
     else:
         if not Dryrun:
@@ -110,7 +109,7 @@ def process_file(source_file_name):
             backup_files.add(back_path)
             Copied += 1
         else:
-            debp("Would copy %s to %s" % (source_file_name, back_path))
+            logging.debug("Would copy %s to %s" % (source_file_name, back_path))
 
     # Check if there are superfluous backups
     bfs = list(backup_files)
@@ -121,9 +120,9 @@ def process_file(source_file_name):
         if Unlink:
             if not Dryrun:
                 f.unlink()
-                debp("Removed superfluous backup file %s" % f)
+                logging.debug("Removed superfluous backup file %s" % f)
             else:
-                debp("Would delete superfluous backup file %s" % f)
+                logging.debug("Would delete superfluous backup file %s" % f)
 
 
 def pp(path, fn):
@@ -133,11 +132,16 @@ def pp(path, fn):
     elif path.is_file():
         fn(path)
     else:
-        debp("Ignoring path %s" % path)
+        logging.debug("Ignoring path %s" % path)
 
+def main():
+    l = logging.DEBUG if Debug else logging.INFO
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=l)
 
-for apath in args.file:
-    pp(Path(apath), process_file)
+    for apath in args.file:
+        pp(Path(apath), process_file)
 
-print("Backed up %i file(s)" % Copied)
+    print("Backed up %i file(s)" % Copied)
 
+if __name__ == "__main__":
+    main()

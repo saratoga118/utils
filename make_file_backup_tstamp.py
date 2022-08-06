@@ -50,6 +50,10 @@ def parse_ext(file_name):
 
 Time_stamp = datetime.datetime.now()
 
+Ignore_files = [
+    r'^~'
+]
+
 
 def gen_back_fname(source_file_name):
     basename, ext = parse_ext(source_file_name.name)
@@ -71,6 +75,11 @@ def process_file(source_file_name):
 
     # Get list of existing backup files
     basename, ext = parse_ext(source_file_name.name)
+    for igf in Ignore_files:
+        m = re.search(igf, basename)
+        if m:
+            logging.debug("Ignoring file %s due to match with ignore regex %s" % (basename, igf))
+            return
     backup_file_re = re.compile(basename + r'-\d{8}[T\-]\d{6}' + ext + '$')
     # print("bms:", bms)
     bdp = Path(back_dir)
@@ -105,7 +114,7 @@ def process_file(source_file_name):
             back_dir.mkdir(exist_ok=True)
             try:
                 shutil.copy2(source_file_name, back_path)
-                print("Copied %s to %s" % (source_file_name, back_path))
+                logging.info("Copied %s to %s" % (source_file_name, back_path))
                 backup_files.add(back_path)
                 Copied += 1
             except:
@@ -144,7 +153,7 @@ def main():
     for apath in args.file:
         pp(Path(apath), process_file)
 
-    print("Backed up %i file(s)" % Copied)
+    logging.info("Backed up %i file(s)" % Copied)
 
 
 if __name__ == "__main__":

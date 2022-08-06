@@ -5,7 +5,6 @@
 import datetime
 import re
 import shutil
-import sys
 from pathlib import Path
 import filecmp
 import argparse
@@ -94,20 +93,23 @@ def process_file(source_file_name):
     #                 existing_backup = bf
     for bf in backup_files:
         if not existing_backup and \
-        bf.stat().st_size == source_size and \
-        filecmp.cmp(bf, source_file_name):
+                bf.stat().st_size == source_size and \
+                filecmp.cmp(bf, source_file_name):
             existing_backup = bf
 
     if existing_backup:
         logging.debug("Backup file '%s' is a backup of '%s'" %
-             (existing_backup, source_file_name))
+                      (existing_backup, source_file_name))
     else:
         if not Dryrun:
             back_dir.mkdir(exist_ok=True)
-            shutil.copy2(source_file_name, back_path)
-            print("Copied %s to %s" % (source_file_name, back_path))
-            backup_files.add(back_path)
-            Copied += 1
+            try:
+                shutil.copy2(source_file_name, back_path)
+                print("Copied %s to %s" % (source_file_name, back_path))
+                backup_files.add(back_path)
+                Copied += 1
+            except:
+                logging.warning("Copy from %s to %s failed" % (source_file_name, back_path))
         else:
             logging.debug("Would copy %s to %s" % (source_file_name, back_path))
 
@@ -134,14 +136,16 @@ def pp(path, fn):
     else:
         logging.debug("Ignoring path %s" % path)
 
+
 def main():
-    l = logging.DEBUG if Debug else logging.INFO
-    logging.basicConfig(format='%(levelname)s:%(message)s', level=l)
+    llev = logging.DEBUG if Debug else logging.INFO
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=llev)
 
     for apath in args.file:
         pp(Path(apath), process_file)
 
     print("Backed up %i file(s)" % Copied)
+
 
 if __name__ == "__main__":
     main()
